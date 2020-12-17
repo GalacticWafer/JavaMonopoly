@@ -12,11 +12,17 @@ public class Deck  {
 				unused = new Stack<>();
 				used = new Stack<>();
 				Scanner scanner = new Scanner(new File(fileName));
-				scanner.nextLine();
-				while(scanner.hasNextLine()){ 
-					String[] inner_str = scanner.nextLine().split(",");
-					unused.push(new Card(inner_str[0],Arrays.stream(inner_str[1].split(" "))
-					 .map(Integer::valueOf).mapToInt(i->i).toArray()));                                          
+				while(scanner.hasNextLine()){
+					String[] array = scanner.nextLine().split(",");
+					int[] s;
+					if(array.length == 3) {
+						s = Arrays.stream(array[2].split(" "))
+								  .map(Integer::valueOf).mapToInt(i -> i)
+								  .toArray();
+					} else {
+						s = new int[0];
+					}
+					unused.push(new Card(array[0], Integer.parseInt(array[1]), s));                                          
 				}
 			} 
 			public Card draw(){
