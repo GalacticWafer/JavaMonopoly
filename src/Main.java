@@ -1,6 +1,8 @@
+import java.awt.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
+import java.util.List;
 import java.util.stream.Collectors;
 
 public class Main {
@@ -14,25 +16,29 @@ public class Main {
 	public static final String SPACES_STRING = "board_spaces.csv";
 	public static final int TOO_MANY_DOUBLES = 3;
 	public static ArrayList<BoardSpace> board;
-	public static HashMap<Color, ArrayList<BoardSpace>> colorGroups;
+	private static Deck chance;
+	private static Deck chest;
+	public static HashMap<Color, ArrayList<Estate>> colorGroups;
+	public static HashMap<Integer, Color> locationColorMap;
 	public static HashMap<SpaceKind, Integer> groupCounts;
+	public static HashMap<SpaceKind, ArrayList<BoardSpace>> spaceGroups;
 	public static int hotels = 12;
 	public static int houses = 30;
 	public static HashMap<Integer, BoardSpace> locationMap;
 	public static HashMap<Property, Player> ownerMap;
 	
-	private static void auction(ArrayList<Player> bidders,
-								Property property) {
+	
+	private static void auction(List<Player> bidders, Property property) {
 		Player player = bidders.get(0);
 		int highestBid = property.purchasePrice;
-		for(int i = 0; bidders.size() > 1; i++) {
-			if(i == bidders.size()) { i = 0; }
-			player = bidders.get(i);
+		int i = 0;
+		int originalSize = bidders.size();
+		for(; bidders.size() > 1; i++) {
+			player = bidders.get(i % bidders.size());
 			boolean quit = false;
 			if(player.money >= highestBid &&
-			   inputBool("Does " + player + " want to continue to bid?" +
-						 "\nhighest bid: " + highestBid + "\nBalance: " +
-						 player.money + "?")) {
+			   inputBool("Does " + player + " want to continue to bid?\nhighest bid: " + highestBid + "\nBalance: " +
+						 player.money + "?")) { 
 				int bid;
 				while(true) {
 					bid = inputInt("How much do you want to pay?");
@@ -40,37 +46,64 @@ public class Main {
 						highestBid = bid;
 						break;
 					} else {
-						if(inputBool(bid + " is not higher than " + highestBid +
-									 ". Quit bidding?")) {
+						if(inputBool(bid + " is not higher than " + highestBid + ". Quit bidding?")) {
 							quit = true;
 							break;
 						}
 					}
 				}
-				if(quit) { bidders.remove(i--); }
-			} else { bidders.remove(i--); }
+				if(quit) {
+					int x = i%bidders.size();
+					bidders.remove(x);
+					i--; 
+				}
+			} else { 
+				int x = i%bidders.size();
+				bidders.remove(x);
+				i--; 
+			}
 		}
-		if(inputBool("All other bidders have been eliminated." + player + "," +
-					 " do you want to buy " + property + " for $" + highestBid +
-					 "?")) {
-			input(player + " has won the auction for " + property + " at $" +
-				  highestBid + "!");
+		if(i >= originalSize || player.money >= highestBid && inputBool("All other bidders have been eliminated." + player + ", do you want to buy " + property + " for $" + highestBid + "?")) { 
+			input(player + " has won the auction for " + property + " at $" + highestBid + "!");
 			player.money -= highestBid;
 			ownerMap.put(property, player);
 		}
 	}
 	
-	public boolean ownsAll(SpaceKind kind, Player player){
-		int playerOwnedCount = 0;
-		for(BoardSpace boardSpace: colorGroups.get(kind)) {
-			//Todo some logic to count how many player owns.
+	public static boolean ownsAll(BoardSpace space, Player player){
+		var group = spaceGroups.get(space.kind);
+		for(BoardSpace boardSpace: group) {
+			if(ownerMap.get(boardSpace) != player) {
+				return false;
+			}
 		}
-		return groupCounts.get(kind) == playerOwnedCount;
+		return true;
 	}
+	public static boolean ownsAll(Estate estate, Player player){
+		var group = colorGroups.get(estate.color);
+		for(BoardSpace boardSpace: group) {
+			if(ownerMap.get(boardSpace) != player) {
+				return false;
+			}
+		}
+		return true;
+	}
+	
+	private static int countOwnership(Player player, BoardSpace space) {
+		var group = spaceGroups.get(space.kind);
+		int count = 0;
+		for(BoardSpace groupMember: group) {
+			if(ownerMap.get(groupMember) == player) { count++; }
+		}
+		return count;
+	}
+	
 	// initialization
 	private static ArrayList<BoardSpace> boardInit(Deck chance, Deck chest)
 	throws FileNotFoundException {
 		locationMap = new HashMap<>();
+		locationColorMap = new HashMap<>();
+		spaceGroups = new HashMap<>();
 		ownerMap = new HashMap<>();
 		colorGroups = new HashMap<>();
 		ArrayList<BoardSpace> board = new ArrayList<>(40);
@@ -103,7 +136,7 @@ public class Main {
 					 i, // int location,
 					 space[1], // String name 
 					 SpaceKind.parseKind(space[0]),  //	SpaceKind kind,
-					 Integer.parseInt(space[3]), // int purchasePrice
+					 Integer.parseInt(space[2]), // int purchasePrice
 					 Integer.parseInt(space[5]), // int mortgagePrice
 					 Arrays.stream(space[4].split(" ")).map(Integer::valueOf)
 						   .collect(Collectors
@@ -136,9 +169,23 @@ public class Main {
 					board.add(new BoardSpace(i, space[1], SpaceKind.parseKind(space[6])));
 			}
 		}
-		for(BoardSpace boardSpace: board) {
+		Iterator<BoardSpace> it = board.iterator();
+		for(int i = 0; i < board.size(); i++) {
+			BoardSpace boardSpace = it.next();
+			if(!spaceGroups.containsKey(boardSpace.kind)) {
+						spaceGroups.put(boardSpace.kind, new ArrayList<>());
+			}
+			spaceGroups.get(boardSpace.kind).add(boardSpace);
 			if(boardSpace instanceof Property property) {
 				ownerMap.put(property, BANKER);
+				if(boardSpace instanceof Estate estate) {
+					locationColorMap.put(i, estate.color);
+					//DUPLICATE, already happens when parsing spaces 
+					//if(!colorGroups.containsKey(estate.color)) {
+					//	colorGroups.put(estate.color, new ArrayList<>());
+					//}
+					//colorGroups.get(estate.color).add(estate);
+				}
 			}
 		}
 		return board;
@@ -155,30 +202,21 @@ public class Main {
 	
 	private static void estateCheck(Player player, Estate estate) {
 		if(!canBuy(player, estate)) {
-			if(player != estate.owner) {
-				int groupedSiblings = countGroupedSiblings(estate, estate.owner);
-				int maxGroupSize = (int)board.stream()
-										.filter(space -> space instanceof Estate && ((Estate)space).color == estate.color)
-										.count() - 1;
-				int rent = estate.getRent(groupedSiblings, maxGroupSize);
-				player.money -= rent;
-				estate.owner.money += rent;
-				input("You had to pay " + estate.owner + " $" + rent + ".");
-				checkForBroke(player, rent);
-				return;
-			}
+			if(player == estate.owner) { return; }
+			int groupedSiblings = countOwnership(player, estate);
+			int otherSiblings = estate.color.count() - 1;
+			int rent = estate.getRent(groupedSiblings, otherSiblings);
+			player.money -= rent;
+			estate.owner.money += rent;
+			input(player + "had to pay " + estate.owner + " $" + rent + ".");
+			checkForBroke(player, rent);
+			return;
 		}
-		if(inputBool("do you want to buy this property?")) {
+		if(inputBool("do you want to buy " + estate + "?")) {
 			player.money -= estate.purchasePrice;
 			ownerMap.put(estate, player);
 		} else {
-			ArrayList<Player> players = new ArrayList<>();
-			for(Player p: PLAYERS) {
-				if(p != player) {
-					players.add(p);
-				}
-			}
-			auction(players, estate);
+			auction(PLAYERS.stream().filter(x -> x != player).collect(Collectors.toList()),estate);
 		}
 	}
 	
@@ -236,7 +274,39 @@ public class Main {
 		}
 	}
 	
-	private static void jailCheck(Player player) {
+	private static boolean jailCheck(Player player) {
+		String s = "";
+		if(player.inJail > -1) {
+			System.out.println("\n\nIt's " + player + "'s turn.");
+			if(player.jailCards.size() > 0 && inputBool("Do you want to use a get out of jail free card?")){
+				Card jailCard = player.jailCards.pop();
+				if(jailCard.args[0] == Card.CHANCE_DECK) {
+					chance.used.push(jailCard);
+				} else {
+					chest.used.push(jailCard);
+				}
+				player.inJail = -1;
+				//return true;
+			} else if (inputBool("Does " + player + " want to try to roll doubles to get out of jail?")) {
+				int[] roll = roll();
+				if(roll[0] == roll[1]) {
+					input(player + " rolled double " + roll[0] + "'s and got out of jail!");
+					player.inJail = -1;	
+					//return true;
+				} else {
+					s += player + " rolled " + roll[0] + " and " + roll[1];
+				}
+			} else if(player.money >= 50 && inputBool("Do you want to pay $50 to get out of jail?")) {
+				player.money -= 50;
+				player.inJail = -1;	
+				//return true;
+			}
+			input(s + "\n" + player + " is still in jail for this round.");
+			player.inJail--;
+			//return false;
+		}
+		//return true;
+		return false;
 	}
 	
 	// taxes
@@ -247,37 +317,41 @@ public class Main {
 	
 	public static void main(String[] args) throws FileNotFoundException {
 		PLAYERS = getPlayers();
-		Deck chance = new Deck(CHANCE_STRING);
-		Deck chest = new Deck(CHEST_STRING);
+		chance = new Deck(CHANCE_STRING);
+		chest = new Deck(CHEST_STRING);
 		board = boardInit(chance, chest);
 		
-		((Estate)board.get(6)).owner = PLAYERS.get(0);
+/*		((Estate)board.get(6)).owner = PLAYERS.get(0);
 		((Estate)board.get(8)).owner = PLAYERS.get(0);
 		((Estate)board.get(9)).owner = PLAYERS.get(0);
-		((Estate)board.get(6)).numHouses = 3;
+		((Estate)board.get(6)).numHouses = 2;
 		((Estate)board.get(8)).numHouses = 3;
 		((Estate)board.get(9)).numHouses = 3;
 		ownerMap.put((Estate)board.get(6), PLAYERS.get(0));
 		ownerMap.put((Estate)board.get(8), PLAYERS.get(0));
-		ownerMap.put((Estate)board.get(9), PLAYERS.get(0));
-		for(int i = 1; PLAYERS.size() > 1; i++) {
+		ownerMap.put((Estate)board.get(9), PLAYERS.get(0));*/
+		
+		for(int i = 0; PLAYERS.size() > 1; i++) {
 			Player player = PLAYERS.get(i % PLAYERS.size());
-			jailCheck(player);
+			if(!jailCheck(player)) {
+				continue;
+			}
+			input("It's " + player + "'s turn.");
 			player.developmentCheck();
-			input("it's player " + player + "'s turn.");
 			int numRolls = 0;
 			boolean doubles;
-			while(numRolls < 3) {
+			while(numRolls < 4) {
 				numRolls++;
-				int[] roll = /*roll();*/ new int[] {1, 5};
+				int[] roll = 
+				 //roll();
+				new int[] {1, 1};
 				if(roll[0] == roll[1]) {
 					doubles = true;
 					System.out.println("doubles!");
-					if(numRolls == 2) {
-						System.out.println("You have to go to jail!");
-						player.inJail = 0;
+					if(numRolls == 3) {
+						System.out.println("Three doubles in a row, " + player + " has to go to jail!");
+						player.inJail = 3;
 						player.location = 10;
-						jailCheck(player);
 						break;
 					}
 				} else { doubles = false; }
@@ -285,7 +359,7 @@ public class Main {
 				 (roll[0] + roll[1] + board.size() + player.location) %
 				 board.size();
 				BoardSpace space = board.get(player.location);
-				println("You landed on " + space.name + ".");
+				println(player + " landed on " + space.name + ".");
 				if(player.location == GO_TO_JAIL) {
 					System.out.println("You have to go to jail!");
 					player.inJail = 0;
@@ -347,7 +421,7 @@ public class Main {
 	static void println(String s) { print(s + "\n"); }
 	
 	// properties
-	private static void railRoadCheck(Player player, RailRoad railRoad) {
+	static void railRoadCheck(Player player, RailRoad railRoad) {
 		if(!canBuy(player, railRoad)) { 
 			if(railRoad.owner != BANKER) {
 				int groupedSiblings = countGroupedSiblings(railRoad, player);
@@ -363,17 +437,10 @@ public class Main {
 			player.money -= railRoad.purchasePrice;
 			ownerMap.put(railRoad, player);
 			railRoad.owner = player;
-			input(player + " just purchased " + railRoad + 
-				  ".\nBalance remaining: $" + player.money);
+			input(player + " just purchased " + railRoad + ".\n" + player.printBalance());
 			return;
 		} else {
-			ArrayList<Player> players = new ArrayList<>();
-			for(Player p: PLAYERS) {
-				if(p != player) {
-					players.add(p);
-				}
-				auction(players, railRoad);
-			}
+			auction(PLAYERS.stream().filter(x -> x != player).collect(Collectors.toList()), railRoad);
 		}
 	}
 	
@@ -442,7 +509,7 @@ public class Main {
 		}
 	}
 	
-	private static void utilityCheck(Player player, Utility utility) {
+	static void utilityCheck(Player player, Utility utility) {
 		if(!canBuy(player, utility)) { 
 			if(utility.owner != BANKER) {
 				int groupedSiblings = countGroupedSiblings(utility, player);
@@ -462,13 +529,7 @@ public class Main {
 				  ".\nBalance remaining: $" + player.money);
 			return;
 		} else {
-			ArrayList<Player> players = new ArrayList<>();
-			for(Player p: PLAYERS) {
-				if(p != player) {
-					players.add(p);
-				}
-				auction(players, utility);
-			}
+			auction(PLAYERS.stream().filter(x -> x != player).collect(Collectors.toList()),utility);
 		}
 	}
 }

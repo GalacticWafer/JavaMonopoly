@@ -6,7 +6,7 @@ import java.util.stream.Collectors;
 
 public class Estate extends Property {
 	private static final int MAX_HOUSES = 4;
-	int houseCost;
+	int houseCost;	
 	Color color;
 	int numHouses;
 	boolean hasHotel;
@@ -76,7 +76,7 @@ public class Estate extends Property {
 			if(!hasHotel && houseCost <= owner.money) {
 				Main.input("putting a hotel on " + this);
 				owner.setBalance(-houseCost);
-				owner.printBalance();
+				Main.input(owner.printBalance());
 				numHouses = 0;
 				hasHotel = true;
 				return true;
@@ -84,8 +84,7 @@ public class Estate extends Property {
 			if(hasHotel) {
 				Main.input("You are already maxed out with a Hotel Here!");
 			} else {
-				System.out.println("You don't have enough money!");
-				owner.printBalance();
+				System.out.println("You don't have enough money!\n" + owner.printBalance());
 			}
 			return false;
 		}
@@ -112,10 +111,16 @@ public class Estate extends Property {
 	public int getNumHouses(){
 		return numHouses;
 	}
+	
+	public boolean hasHotel() {
+		return numHouses == MAX_HOUSES + 1;
+	}
+	
 	public int hotelCount(){
 		return hasHotel ? 1 : 0;
 	}
 	public Color getColor() { return color;}
+	
 }
 
 			

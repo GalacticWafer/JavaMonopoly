@@ -7,4 +7,12 @@ public enum Color { Blue,  Green, LightBlue, Orange, Pink, Purple, Red, Yellow;
 			}
 			return null;
 		}
+		
+		public int count() {
+			switch(this) {
+				case Blue, Purple: { return 2;}  
+				case Green, Red, Pink, Orange, LightBlue, Yellow: { return 3;}
+			}
+			throw new IllegalArgumentException();
+		}
 	}
