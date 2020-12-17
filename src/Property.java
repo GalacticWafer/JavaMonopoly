@@ -5,7 +5,6 @@ public class Property extends BoardSpace {
 	int mortgagePrice;
 	boolean isMortgaged;
 	List<Integer> payouts;
-	Player owner;
 	
 	public Property(
 	 int location,
@@ -16,11 +15,14 @@ public class Property extends BoardSpace {
 	 List<Integer> payouts
 	)
 	{
-		super(location, name, kind);
+		super(name, kind);
 		this.purchasePrice = purchasePrice;
 		this.mortgagePrice = mortgagePrice;
 		isMortgaged = false;
 		this.payouts = payouts;
-		owner = Main.BANKER;
+	}
+	
+	public String printCost() {
+		return this + " costs $" + purchasePrice;
 	}
 }

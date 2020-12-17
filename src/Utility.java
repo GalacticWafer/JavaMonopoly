@@ -15,9 +15,9 @@ public class Utility extends Property {
 	
 	public int getRent(int groupedSiblings) {
 		int multiplier = payouts.get(groupedSiblings);
-		Main.input("Roll and pay " + multiplier + " times the amount shown on the dice.");
-		var roll =  Main.roll();
-		Main.input("you rolled " + roll[0] + " &" + roll[1]);
+		Game.input("Roll and pay " + multiplier + " times the amount shown on the dice.");
+		var roll =  Game.roll();
+		Game.input("you rolled " + roll[0] + " & " + roll[1]);
 		return (roll[0] + roll[1]) * multiplier;
 	}
 }

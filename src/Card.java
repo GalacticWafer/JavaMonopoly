@@ -25,51 +25,47 @@ public class Card {
 		this.args = args;
 	}
 	
-	public void check(Player currentPlayer, ArrayList<Player> players,
-					  Player banker,
-					  ArrayList<BoardSpace> board) {
-		Main.input(text);
+	public void check(Player currentPlayer, ArrayList<Player> players, ArrayList<BoardSpace> board) {
+		int oldLocation = currentPlayer.location;
+		System.out.println(currentPlayer.printBalance());
+		Game.input(text);
 		switch(instructions) {
-			case UTILITY: {
-				while(Main.board.get(currentPlayer.location).kind != SpaceKind.Utility) {
-					currentPlayer.location = (currentPlayer.location + 1) % board.size();
+			case UTILITY -> {
+				while(Game.board.get(currentPlayer.location).kind !=
+					  SpaceKind.Utility) {
+					currentPlayer.location =
+					 (currentPlayer.location + 1) % board.size();
 				}
-				Main.utilityCheck(currentPlayer, (Utility)Main.board.get(currentPlayer.location));
-				break;
+				Game.propertyCheck(currentPlayer, (Utility)Game.board
+				 .get(currentPlayer.location));
+				return;
 			}
-			case RAILROAD:{
-				while(Main.board.get(currentPlayer.location).kind != SpaceKind.Railroad) {
-					currentPlayer.location = (currentPlayer.location + 1) % board.size();
+			case RAILROAD -> {
+				while(Game.board.get(currentPlayer.location).kind !=
+					  SpaceKind.Railroad) {
+					currentPlayer.location =
+					 (currentPlayer.location + 1) % board.size();
 				}
-				Main.railRoadCheck(currentPlayer, (RailRoad)Main.board.get(currentPlayer.location));
-				break;
+				Game.propertyCheck(currentPlayer, (RailRoad)Game.board
+				 .get(currentPlayer.location));
+				return;
 			}
-			case JAIL:{
-				currentPlayer.location = Main.JAIL;
+			case JAIL -> {
+				currentPlayer.location = Game.JAIL;
 				currentPlayer.inJail = 3;
-				break;
+				return;
 			}
-			case GO:{
+			case GO -> {
 				currentPlayer.location = 0;
-				break;
+				currentPlayer.money += 200;
 			}
-			case REPAIR: {
-				/*List<BoardSpace> colorGroups
-				 = Main.ownerMap.entrySet()
-								.stream()
-								.filter(entry -> 
-								 	entry.getValue() == currentPlayer
-								 	&& entry instanceof Estate)
-								.map(Map.Entry::getKey)
-								.collect(Collectors.groupingBy
-								(Estate::getColor));*/
-				
+			case REPAIR -> {
 				ArrayList<ArrayList<Estate>> colorGroups = new ArrayList<>();
-				for(Map.Entry<Property, Player> entry: Main.ownerMap
+				for(Map.Entry<Property, Player> entry: Game.ownerMap
 				 .entrySet()) {
 					boolean foundGroup = false;
 					if(entry.getKey() instanceof Estate estate) {
-						if(estate.owner != currentPlayer) { continue; }
+						if(Game.ownerMap.get(estate) != currentPlayer) { continue; }
 						for(ArrayList<Estate> colorGroup: colorGroups) {
 							if(colorGroup.get(0).color == estate.color) {
 								colorGroup.add(estate);
@@ -83,66 +79,63 @@ public class Card {
 						}
 					}
 				}
+				int payment =0;
 				for(ArrayList<Estate> cList: colorGroups) {
-					Color color = cList.get(0).color;
-					int payment =
-					 cList.stream()
-						  .filter(thing -> thing.getColor() == color)
-						  .mapToInt(Estate::getNumHouses)
-						  .sum() * 25
-					 + cList.stream()
-							.filter(thing -> thing.getColor() == color)
-							.mapToInt(Estate::hotelCount)
-							.sum() * 100;
-					currentPlayer.setBalance(-payment);
-					if(currentPlayer.money < 0) {
-						System.out
-						 .println("you're broke! You better start selling " +
-								  "things...");
+					for(Estate estate: cList) {
+						if(estate.hasHotel()) {
+							payment += 100;
+						} else {
+							payment += 25 * estate.numHouses;
+						}
 					}
 				}
-				break;
+				Game.debtCheck(currentPlayer, payment, currentPlayer
+				 .canPayDebt(payment));
 			}
-			case PAY: {
-				currentPlayer.money -= args[0];
-				break;
+			case PAY -> {
+				int collectedDebt = currentPlayer.canPayDebt(args[0]);
+				Game.debtCheck(currentPlayer, args[0], collectedDebt);
 			}
-			case PAY_EACH: {
+			case PAY_EACH -> {
 				for(Player p: players) {
 					if(currentPlayer != p) {
-						p.money += args[0];
-						currentPlayer.money -= args[0];
+						if(currentPlayer.payPlayer( p, args[0])) { 
+							break;
+						}
 					}
 				}
-				break;
 			}
-			case COLLECT: {
-				currentPlayer.money += args[0];
-				break;
-			}
-			case COLLECT_EACH: {
+			case COLLECT -> currentPlayer.money += args[0];
+			case COLLECT_EACH -> {
 				for(Player p: players) {
 					if(currentPlayer != p) {
-						p.money -= args[0];
-						currentPlayer.money += args[0];
+						if(p.payPlayer(currentPlayer, args[0])) {
+							break;
+						}
 					}
 				}
-				break;
 			}
-			case ADVANCE: {
+			case ADVANCE -> {
+				oldLocation = currentPlayer.location;
 				currentPlayer.location = args[0];
-				break;
+				move(currentPlayer, board, oldLocation);
+				return;
 			}
-			case JAIL_FREE: {
+			case JAIL_FREE -> {
 				currentPlayer.jailCards.push(this);
-				break;
+				return;
 			}
-			case MOVE_X: {
-				currentPlayer.location =
-				 (currentPlayer.location + board.size() + args[0]) %
-				 board.size();
-				break;
+			case MOVE_X -> {
+				args[0] = args[0] * (args[1] == 1 ? 1 : -1);
+				move(currentPlayer, board, oldLocation);
 			}
 		}
+		System.out.println(currentPlayer.printBalance());
+	}
+	
+	private void move(Player currentPlayer, ArrayList<BoardSpace> board, int oldLocation) {
+		int move;
+		move = oldLocation > args[0] ? (board.size() - oldLocation + args[0]) : (args[0] - oldLocation);
+		Game.movePlayer(currentPlayer, board.get((currentPlayer.location)) , oldLocation, move);
 	}
 }

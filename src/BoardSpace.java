@@ -1,12 +1,8 @@
 public class BoardSpace {
-	private int location;
 	public String name;
 	SpaceKind kind;
-	Estate cp;
-	RailRoad rr;
 	
-	public BoardSpace(int location, String name, SpaceKind kind) {
-		this.location = location;
+	public BoardSpace(String name, SpaceKind kind) {
 		this.name = name;
 		this.kind = kind;
 	}
