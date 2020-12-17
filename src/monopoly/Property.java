@@ -1,3 +1,5 @@
+package monopoly;
+
 import java.util.List;
 
 public class Property extends BoardSpace {
@@ -22,5 +24,9 @@ public class Property extends BoardSpace {
 		isMortgaged = false;
 		this.payouts = payouts;
 		owner = Main.BANKER;
+	}
+	
+	public String printCost() {
+		return this + " costs $" + purchasePrice;
 	}
 }

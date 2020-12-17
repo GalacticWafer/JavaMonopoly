@@ -1,3 +1,5 @@
+package monopoly;
+
 public enum SpaceKind { Chance, Chest, Corner, IncomeTax, LuxuryTax, Color, Railroad, Utility;
 	public static SpaceKind parseKind(String string) {
 		for(SpaceKind kind: SpaceKind.values()){

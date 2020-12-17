@@ -1,7 +1,8 @@
+package monopoly;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class Deck  {
 			BoardSpace boardSpace;
@@ -31,7 +32,9 @@ public class Deck  {
 					unused = used;
 					used = temp;
 				}
-				int rand = /*new Random().nextInt(unused.size())*/0;
+				int rand = 
+				 //new Random().nextInt(unused.size());
+				 0;
 				Card card = unused.get(rand);
 				used.push(card);
 				unused.remove(rand);

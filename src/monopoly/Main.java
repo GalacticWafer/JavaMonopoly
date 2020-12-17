@@ -1,4 +1,5 @@
-import java.awt.*;
+package monopoly;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
@@ -6,12 +7,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class Main {
+	public Main(){
+	}
 	public static final Player BANKER = new Player("Banker", -1);
 	public static final String CHANCE_STRING = "ChanceCards.csv";
 	public static final String CHEST_STRING = "CommunityChestCards.csv";
 	private static final int GO_TO_JAIL = 30;
 	public static final Integer JAIL = 10;
-	private static final int MAX_HOUSES = 4;
 	public static ArrayList<Player> PLAYERS;
 	public static final String SPACES_STRING = "board_spaces.csv";
 	public static final int TOO_MANY_DOUBLES = 3;
@@ -20,15 +22,15 @@ public class Main {
 	private static Deck chest;
 	public static HashMap<Color, ArrayList<Estate>> colorGroups;
 	public static HashMap<Integer, Color> locationColorMap;
-	public static HashMap<SpaceKind, Integer> groupCounts;
 	public static HashMap<SpaceKind, ArrayList<BoardSpace>> spaceGroups;
 	public static int hotels = 12;
 	public static int houses = 30;
 	public static HashMap<Integer, BoardSpace> locationMap;
 	public static HashMap<Property, Player> ownerMap;
-	
+	private static int turnCounter;
 	
 	private static void auction(List<Player> bidders, Property property) {
+		println("\n\nAUCTION TIME! The bank is selling " + property + "\n\n");
 		Player player = bidders.get(0);
 		int highestBid = property.purchasePrice;
 		int i = 0;
@@ -53,7 +55,7 @@ public class Main {
 					}
 				}
 				if(quit) {
-					int x = i%bidders.size();
+					int x = i % bidders.size();
 					bidders.remove(x);
 					i--; 
 				}
@@ -70,15 +72,6 @@ public class Main {
 		}
 	}
 	
-	public static boolean ownsAll(BoardSpace space, Player player){
-		var group = spaceGroups.get(space.kind);
-		for(BoardSpace boardSpace: group) {
-			if(ownerMap.get(boardSpace) != player) {
-				return false;
-			}
-		}
-		return true;
-	}
 	public static boolean ownsAll(Estate estate, Player player){
 		var group = colorGroups.get(estate.color);
 		for(BoardSpace boardSpace: group) {
@@ -89,17 +82,8 @@ public class Main {
 		return true;
 	}
 	
-	private static int countOwnership(Player player, BoardSpace space) {
-		var group = spaceGroups.get(space.kind);
-		int count = 0;
-		for(BoardSpace groupMember: group) {
-			if(ownerMap.get(groupMember) == player) { count++; }
-		}
-		return count;
-	}
-	
 	// initialization
-	private static ArrayList<BoardSpace> boardInit(Deck chance, Deck chest)
+	public static ArrayList<BoardSpace> boardInit(Deck chance, Deck chest)
 	throws FileNotFoundException {
 		locationMap = new HashMap<>();
 		locationColorMap = new HashMap<>();
@@ -111,15 +95,14 @@ public class Main {
 		for(int i = 0; scanner.hasNextLine(); i++) {
 			String[] space = scanner.nextLine().split(",");
 			switch(space[6]) {
-				case "Color": {
+				case "monopoly.Color" -> {
 					Estate cp = new Estate(
 					 i, // location
 					 space[1],    // String name    	          
-					 SpaceKind.Color, // SpaceKind kind
+					 SpaceKind.Color, // monopoly.SpaceKind kind
 					 Integer.parseInt(space[2]),  // int purchasePrice
 					 Integer.parseInt(space[5]),   // int mortgagePrice
-					 Arrays.stream(space[4]
-					  .split(" "))  // List<Integer> payouts     	        
+					 Arrays.stream(space[4].split(" "))  // List<Integer> payouts     	        
 						   .map(Integer::valueOf).collect(Collectors.toList()),
 					 Integer.parseInt(space[3]), // int houseCost
 					 Color.parseKind(space[0])); // color
@@ -129,44 +112,31 @@ public class Main {
 					colorGroups.get(cp.color).add(cp);
 					ownerMap.put(cp, BANKER);
 					board.add(cp);
-					continue;
 				}
-				case "Railroad": {
-					board.add(new RailRoad(
-					 i, // int location,
-					 space[1], // String name 
-					 SpaceKind.parseKind(space[0]),  //	SpaceKind kind,
-					 Integer.parseInt(space[2]), // int purchasePrice
-					 Integer.parseInt(space[5]), // int mortgagePrice
-					 Arrays.stream(space[4].split(" ")).map(Integer::valueOf)
-						   .collect(Collectors
-							.toList()) // List<Integer> payouts,
-					));
-					continue;
-				}
-				case "Utility": {
-					board.add(new Utility(
-					 i, // int location,
-					 space[1], // String name 
-					 SpaceKind.parseKind(space[0]),  //	SpaceKind kind,
-					 Integer.parseInt(space[3]), // int purchasePrice
-					 Integer.parseInt(space[5]), // int mortgagePrice
-					 Arrays.stream(space[4].split(" ")).map(Integer::valueOf)
-						   .collect(Collectors
-							.toList()) // List<Integer> payouts,
-					));
-					continue;
-				}
-				case "Chance": {
-					board.add(new CardSpace(i, "Chance", chance, SpaceKind.Chance));
-					continue;
-				}
-				case "Chest": {
-					board.add(new CardSpace(i, "Chest", chest, SpaceKind.Chest));
-					continue;
-				}
-				default:
-					board.add(new BoardSpace(i, space[1], SpaceKind.parseKind(space[6])));
+				case "Railroad" -> board.add(new RailRoad(
+				 i, // int location,
+				 space[1], // String name 
+				 SpaceKind.parseKind(space[0]),  //	monopoly.SpaceKind kind,
+				 Integer.parseInt(space[2]), // int purchasePrice
+				 Integer.parseInt(space[5]), // int mortgagePrice
+				 Arrays.stream(space[4].split(" ")).map(Integer::valueOf)
+					   .collect(Collectors
+						.toList()) // List<Integer> payouts,
+				));
+				case "Utility" -> board.add(new Utility(
+				 i, // int location,
+				 space[1], // String name 
+				 SpaceKind.parseKind(space[0]),  //	monopoly.SpaceKind kind,
+				 Integer.parseInt(space[3]), // int purchasePrice
+				 Integer.parseInt(space[5]), // int mortgagePrice
+				 Arrays.stream(space[4].split(" ")).map(Integer::valueOf)
+					   .collect(Collectors
+						.toList()) // List<Integer> payouts,
+				));
+				case "Chance" -> board
+				 .add(new CardSpace(i, "Chance", chance,
+				  SpaceKind.Chance));
+				case "Chest" -> board.add(new CardSpace(i, "Chest", chest, SpaceKind.Chest));default -> board.add(new BoardSpace(i, space[1], SpaceKind.parseKind(space[6])));
 			}
 		}
 		Iterator<BoardSpace> it = board.iterator();
@@ -193,28 +163,33 @@ public class Main {
 	
 	private static boolean canBuy(Player player, Property property) {
 		if(property.owner == player) {
-			input(player + " already owns " + property);
+			input(player + " already owns " + property + ".");
 			return false;
 		}
-		return ownerMap.get(property) == BANKER
-			   && player.money >= property.purchasePrice;
+		return property.owner == BANKER && player.money >= property.purchasePrice;
 	}
 	
 	private static void estateCheck(Player player, Estate estate) {
 		if(!canBuy(player, estate)) {
 			if(player == estate.owner) { return; }
-			int groupedSiblings = countOwnership(player, estate);
-			int otherSiblings = estate.color.count() - 1;
-			int rent = estate.getRent(groupedSiblings, otherSiblings);
-			player.money -= rent;
-			estate.owner.money += rent;
-			input(player + "had to pay " + estate.owner + " $" + rent + ".");
-			checkForBroke(player, rent);
-			return;
-		}
-		if(inputBool("do you want to buy " + estate + "?")) {
+			if(estate.owner != BANKER) {
+				int groupedSiblings = (int)ownerMap.keySet().stream().filter(e -> e instanceof Estate es && es.owner == estate.owner).count();
+				int maxGroupSize = estate.color.count();
+				int rent = estate.getRent(groupedSiblings, maxGroupSize);
+				if(!(player.canPayDebt(rent) >= rent)) {
+					Main.removePlayer(player);
+				} else {
+					player.money -= rent;
+					estate.owner.money += rent;
+				}
+				input(player + " has to pay " + estate.owner + " $" + rent + ".");
+				checkForBroke(player, rent);
+				return;
+			}
+		} else if(inputBool(player.printBalance() + ".\n" + estate.printCost() +  ".\n" + player + ", do you want to buy " + estate + "?")) {
 			player.money -= estate.purchasePrice;
 			ownerMap.put(estate, player);
+			input(player + " now owns " + estate + ".\n" + player.printBalance());
 		} else {
 			auction(PLAYERS.stream().filter(x -> x != player).collect(Collectors.toList()),estate);
 		}
@@ -223,21 +198,21 @@ public class Main {
 	private static ArrayList<Player> getPlayers() {
 		ArrayList<Player> players = new ArrayList<>();
 		//int numPlayers = inputInt("How many players?");
-		for(int i = 0; i < 3 /*numPlayers*/; i++) {
+		for(int i = 0; i < 30 /*numPlayers*/; i++) {
 			//String name = input("What's player " + (i+1) + "'s name?");
-			players.add(new Player(/*name*/"Player" + (i + 1), i));
+			players.add(new Player(/*name*/"monopoly.Player" + (i + 1), i));
 		}
 		return players;
 	}
 	
 	private static void incomeTax(Player player) {
-		println("you landed on income tax... do you want to pay" +
-				" 10%, or $200?");
-		if(inputBool("Which option do you want to take?", "10%", "$200")) {
+		println("you landed on income tax... " + player.printBalance() + ". Do you want to pay 10% ($" + (player.money / 10) + "), or $200?");
+		if(inputBool("Which option do you want to take?", "10% ($" + (player.money / 10) + ")", "$200")) {
 			player.money -= player.money / 10;
 		} else {
 			player.money -= 200;
 		}
+		println(player.printBalance());
 	}
 	
 	static String input(String prompt) {
@@ -247,17 +222,43 @@ public class Main {
 	
 	static boolean inputBool(String s) {
 		while(true) {
-			int i = inputInt(s + "\n1 for yes, 0 for no");
-			if(i != 1 && i != 0) {
+			int i = inputInt(s + "\t(1 for yes, 2 for no)");
+			if(i != 1 && i != 2) {
 				println("\"" + i + "\" is not a valid choice.");
 			} else { return i == 1; }
 		}
 	}
 	
+	static int inputOption(String prompt, String[] options){
+		prompt  += "\npick from the following options:\n";
+		for(int i = 0; i < options.length; i++) {
+			prompt += "[" + (i + 1) + "] " +  options[i] + "\n";
+		}
+		int i = -1;
+		do {
+			String input = input(prompt);
+			try {
+				i = Integer.parseInt(input);
+			} catch(Exception e) { println("\"" + input + "\" is not valid."); }
+			if(i < 1 || i > options.length) {
+				input(i + " is not a valid option.");
+			}
+		} while(i < 1 || i > options.length);
+		return i - 1;
+	}
+	
+	static int inputOption(String prompt, Iterator<Object> options, int length){
+		String[] array = new String[length];
+		for(int i = 0; options.hasNext(); i++) {
+			array[i] = options.next().toString();
+		}
+		return inputOption(prompt, array);
+	}
+	
 	static boolean inputBool(String s, String yes, String no) {
 		while(true) {
-			int i = inputInt(s + "\n1 for " + yes + ", 0 for " + no);
-			if(i != 1 && i != 0) {
+			int i = inputInt(s + "\t(1 for " + yes + ", 2 for " + no + ")");
+			if(i != 1 && i != 2) {
 				println("\"" + i + "\" is not a valid choice.");
 			} else { return i == 1; }
 		}
@@ -277,7 +278,7 @@ public class Main {
 	private static boolean jailCheck(Player player) {
 		String s = "";
 		if(player.inJail > -1) {
-			System.out.println("\n\nIt's " + player + "'s turn.");
+			println("\n\nIt's " + player + "'s turn.");
 			if(player.jailCards.size() > 0 && inputBool("Do you want to use a get out of jail free card?")){
 				Card jailCard = player.jailCards.pop();
 				if(jailCard.args[0] == Card.CHANCE_DECK) {
@@ -286,7 +287,8 @@ public class Main {
 					chest.used.push(jailCard);
 				}
 				player.inJail = -1;
-				//return true;
+				println(player + " is out of jail!");
+				return false;
 			} else if (inputBool("Does " + player + " want to try to roll doubles to get out of jail?")) {
 				int[] roll = roll();
 				if(roll[0] == roll[1]) {
@@ -320,87 +322,36 @@ public class Main {
 		chest = new Deck(CHEST_STRING);
 		board = boardInit(chance, chest);
 		
-/*		((Estate)board.get(6)).owner = PLAYERS.get(0);
-		((Estate)board.get(8)).owner = PLAYERS.get(0);
-		((Estate)board.get(9)).owner = PLAYERS.get(0);
-		((Estate)board.get(6)).numHouses = 2;
-		((Estate)board.get(8)).numHouses = 3;
-		((Estate)board.get(9)).numHouses = 3;
-		ownerMap.put((Estate)board.get(6), PLAYERS.get(0));
-		ownerMap.put((Estate)board.get(8), PLAYERS.get(0));
-		ownerMap.put((Estate)board.get(9), PLAYERS.get(0));*/
-		
-		for(int i = 0; PLAYERS.size() > 1; i++) {
-			Player player = PLAYERS.get(i % PLAYERS.size());
-			if(jailCheck(player)) {
+		turnCounter = 0;
+		for(; PLAYERS.size() > 1; turnCounter++) {
+			Player player = PLAYERS.get(turnCounter % PLAYERS.size());
+			if(!jailCheck(player)) {
 				continue;
 			}
-			input("It's " + player + "'s turn.");
+			input("\nIt's " + player + "'s turn.");
 			player.developmentCheck();
 			int numRolls = 0;
 			boolean doubles;
 			while(numRolls < 4) {
 				numRolls++;
-				int[] roll = 
-				 roll();
-				//new int[] {1, 1};
+				//int[] roll = roll();
+				int[] roll = {3,4};
 				if(roll[0] == roll[1]) {
 					doubles = true;
-					System.out.println("doubles!");
-					if(numRolls == 3) {
-						System.out.println("Three doubles in a row, " + player + " has to go to jail!");
+					println("doubles!");
+					if(numRolls == TOO_MANY_DOUBLES) {
+						println("Three doubles in a row, " + player + " has to go to jail!");
 						player.inJail = 3;
 						player.location = 10;
 						break;
 					}
 				} else { doubles = false; }
-				player.location =
-				 (roll[0] + roll[1] + board.size() + player.location) %
-				 board.size();
+				player.location = (roll[0] + roll[1] + board.size() + player.location) % board.size();
+				int oldLocation = player.location;
 				BoardSpace space = board.get(player.location);
-				println(player + " landed on " + space.name + ".");
-				if(player.location == GO_TO_JAIL) {
-					System.out.println("You have to go to jail!");
-					player.inJail = 0;
-					player.location = 10;
-					jailCheck(player);
-					break;
-				} else if(space instanceof RailRoad railRoad) {
-					railRoadCheck(player, railRoad);
-				} else if(space instanceof Utility utility) {
-					utilityCheck(player, utility);
-				} else if(space instanceof Estate estate) {
-					estateCheck(player, estate);
-				}
-				else {
-					switch(space.kind) {
-						case Chance:
-							chance.draw().check(player, PLAYERS, BANKER, board);
-							break;
-						case Chest:
-							chest.draw().check(player, PLAYERS, BANKER, board);
-							break;
-						case IncomeTax:
-							incomeTax(player);
-							break;
-						case LuxuryTax:
-							luxuryTax(player);
-							break;
-						case Corner:
-							switch(player.location) {
-								case 0:
-									System.out
-									 .println("You're on GO, collect $200!!");
-									break;
-								case 10:
-									System.out.println("Just visiting...");
-									break;
-								case 20:
-									System.out.println("Free parking...");
-									break;
-							}
-					}
-				}
+				println(player + " rolled " + roll[0] + " & " + roll[1] + ", and landed on " + space.name + ".");
+				boolean nowInJail = movePlayer(player, space, oldLocation, roll[0] + roll[1]);
+				if(nowInJail) { break; }
 				if(!doubles) {
 					break;
 				}
@@ -409,10 +360,55 @@ public class Main {
 		}
 	}
 	
-	// Helper methods to simplify code for printing/getting input
-	public static List<Integer> parseIntArray(String s) {
-		return Arrays.stream(s.split(" ")).map(Integer::valueOf)
-					 .collect(Collectors.toList());
+	public static boolean movePlayer(Player player, BoardSpace space,
+									 int oldLocation, int move) {
+		if(oldLocation + move > board.size()) {
+			player.money += 200;
+			System.out.println(player + " passed go, and now has $" + player.money);
+		}
+		if(player.location == GO_TO_JAIL) {
+			println("You have to go to jail!");
+			player.inJail = 0;
+			player.location = 10;
+			return true;
+		} else if(space instanceof RailRoad railRoad) {
+			railRoadCheck(player, railRoad);
+		} else if(space instanceof Utility utility) {
+			utilityCheck(player, utility);
+		} else if(space instanceof Estate estate) {
+			estateCheck(player, estate);
+		}
+		else {
+			switch(space.kind) {
+				case Chance:
+					chance.draw().check(player, PLAYERS, board);
+					break;
+				case Chest:
+					chest.draw().check(player, PLAYERS, board);
+					break;
+				case IncomeTax:
+					incomeTax(player);
+					break;
+				case LuxuryTax:
+					luxuryTax(player);
+					break;
+				case Corner: {
+					switch(player.location) {
+						case 0:
+							System.out
+							 .println("You're on GO, collect $200!!");
+							break;
+						case 10:
+							println("Just visiting...");
+							break;
+						case 20:
+							println("Free parking...");
+							break;
+					}
+				}
+			}
+		}
+		return false;
 	}
 	
 	static void print(String s) { System.out.print(s); }
@@ -421,9 +417,10 @@ public class Main {
 	
 	// properties
 	static void railRoadCheck(Player player, RailRoad railRoad) {
-		if(!canBuy(player, railRoad)) { 
+		boolean b = canBuy(player, railRoad);
+		if(!b) { 
 			if(railRoad.owner != BANKER) {
-				int groupedSiblings = countGroupedSiblings(railRoad, player);
+				int groupedSiblings = (int)ownerMap.keySet().stream().filter(e -> e instanceof RailRoad rr && railRoad.owner == rr.owner).count() - 1;
 				int rent = railRoad.getRent(groupedSiblings);
 				player.money -= rent;
 				railRoad.owner.money += rent;
@@ -431,13 +428,15 @@ public class Main {
 				checkForBroke(player, rent);
 				return;
 			}
-		}
-		if(inputBool(player + ", do you want to buy " + railRoad + "?")) {
+		} 
+		/*if(railRoad.owner != BANKER) {
+			
+		}*/
+		if(inputBool(player.printBalance() + ".\n" + railRoad.printCost() +  ".\n" + player + ", do you want to buy " + railRoad + "?")) {
 			player.money -= railRoad.purchasePrice;
 			ownerMap.put(railRoad, player);
 			railRoad.owner = player;
-			input(player + " just purchased " + railRoad + ".\n" + player.printBalance());
-			return;
+			input(player + " now owns " + railRoad + ".\n" + player.printBalance());
 		} else {
 			auction(PLAYERS.stream().filter(x -> x != player).collect(Collectors.toList()), railRoad);
 		}
@@ -480,12 +479,21 @@ public class Main {
 	}
 	
 	public static int countGroupedSiblings(Property property, Player currentPlayer) {
-		return (int)ownerMap.entrySet()
-							.stream()
-							.filter(entry -> entry.getValue() == currentPlayer
-											 && entry.getKey().kind == property.kind
-											 && entry.getKey() != property)
-							.count();
+		if(property instanceof RailRoad) {
+			return (int) ownerMap.entrySet().stream().filter(e -> e.getKey() instanceof RailRoad rr && rr.owner == currentPlayer).count();
+		}
+		if(property instanceof Utility) {
+			return (int) ownerMap.entrySet().stream().filter(e -> e.getKey() instanceof Utility ut && ut.owner == currentPlayer).count();
+		}
+		if(property instanceof Estate estate) {
+			return (int) ownerMap.entrySet().stream().filter(e -> e.getKey() instanceof Estate es && es.owner == currentPlayer && es.color == estate.color).count();
+		}
+		throw new InputMismatchException();
+	}
+	
+	public static void removePlayer(Player player) {
+		PLAYERS.remove(player);
+		turnCounter = (turnCounter - 1 + PLAYERS.size()) % PLAYERS.size();
 	}
 	
 	// other
@@ -496,22 +504,10 @@ public class Main {
 		 };
 	}
 	
-	public static Object tryParseInt(String s) {
-		try { return Integer.parseInt(s); } catch(Exception ignore) {
-			return 0;
-		}
-	}
-	
-	public static Object tryParseIntArray(String s) {
-		try { return Main.parseIntArray(s); } catch(Exception ignore) {
-			return null;
-		}
-	}
-	
 	static void utilityCheck(Player player, Utility utility) {
 		if(!canBuy(player, utility)) { 
 			if(utility.owner != BANKER) {
-				int groupedSiblings = countGroupedSiblings(utility, player);
+				int groupedSiblings = (int)ownerMap.keySet().stream().filter(e -> e instanceof Utility ut && ut.owner == utility.owner).count() - 1;
 				int rent = utility.getRent(groupedSiblings);
 				player.money -= rent;
 				utility.owner.money += rent;
@@ -520,13 +516,11 @@ public class Main {
 				return;
 			}
 		}
-		if(inputBool(player + ", do you want to buy " + utility + "?")) {
+		if(inputBool(player.printBalance() + ".\n" + utility.printCost() +  ".\n"+ player + ", do you want to buy " + utility + "?")) {
 			player.money -= utility.purchasePrice;
 			ownerMap.put(utility, player);
 			utility.owner = player;
-			input(player + " just purchased " + utility + 
-				  ".\nBalance remaining: $" + player.money);
-			return;
+			input(player + " now owns " + utility + ".\n" + player.printBalance());
 		} else {
 			auction(PLAYERS.stream().filter(x -> x != player).collect(Collectors.toList()),utility);
 		}

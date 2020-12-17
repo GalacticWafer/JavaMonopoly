@@ -1,3 +1,5 @@
+package monopoly;
+
 public class BoardSpace {
 	private int location;
 	public String name;
