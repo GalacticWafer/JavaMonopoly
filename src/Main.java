@@ -59,8 +59,13 @@ public class Main {
 			ownerMap.put(property, player);
 		}
 	}
-		public boolean ownsAll(SpaceKind kind, Player player){
-		return groupCounts.get(kind)
+	
+	public boolean ownsAll(SpaceKind kind, Player player){
+		int playerOwnedCount = 0;
+		for(BoardSpace boardSpace: colorGroups.get(kind)) {
+			//Todo some logic to count how many player owns.
+		}
+		return groupCounts.get(kind) == playerOwnedCount;
 	}
 	// initialization
 	private static ArrayList<BoardSpace> boardInit(Deck chance, Deck chest)
