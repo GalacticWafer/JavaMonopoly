@@ -1,11 +1,12 @@
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Player {
 	public static final int MODIFY = 1;
 	public static final int NO_JUST_ROLL = 0;
-	public static final int SELL = 1;
+	public static final int SELL = 2;
 	public String name;
-	public Integer i;
+	public int id;
 	public int inJail = -1;
 	public Stack<Card> jailCards;
 	int location;
@@ -14,7 +15,7 @@ public class Player {
 	// Constructor
 	public Player(String _s, Integer _i) {
 		name = _s;
-		i = _i;
+		id = _i;
 		//propertyGroups = new HashMap<>();
 		location = 0;
 		money = 1500;
@@ -53,12 +54,7 @@ public class Player {
 				money += sum;
 				total += sum;
 			} else {
-				String[] saleOptions = new String[sellableProperties.length];
-				for(int i1 = 0; i1 < sellableProperties.length; i1++) {
-						saleOptions[i1] = sellableProperties[i1].toString();
-				}
-				int index = Game.inputOption("Sell which property?", saleOptions);
-				Property sellableProperty = (Property)sellableProperties[index];
+				Property sellableProperty = getSellableProperties(sellableProperties);
 				int sum = sellableProperty.purchasePrice / 2;
 				if(Game.inputBool(this + " is about to sell " + sellableProperty + " for $" + sum + ". Are you sure?")) {
 					Game.ownerMap.put(sellableProperty, Game.BANKER);
@@ -70,6 +66,16 @@ public class Player {
 		} while(money < owedAmount);
 		return total;
 	}
+	
+	private Property getSellableProperties(Object[] sellableProperties) {
+		String[] saleOptions = new String[sellableProperties.length];
+		for(int i1 = 0; i1 < sellableProperties.length; i1++) {
+				saleOptions[i1] = sellableProperties[i1].toString();
+		}
+		int index = Game.inputOption("Sell which property?", saleOptions);
+		return (Property)sellableProperties[index];
+	}
+	
 	public boolean payPlayer(Player other, int amount) {
 		int collectedDebt = canPayDebt(amount);
 		if(!(collectedDebt >= amount)) {
@@ -98,7 +104,7 @@ public class Player {
 			if(modifiableEstates.size() == 0 || option == NO_JUST_ROLL){return;}
 			do{
 				if(option == SELL) {
-					sellProperty();
+					sellProperty(false);
 				} else if(option == MODIFY) {
 					do{
 						Integer index = selectProperty(modifiableEstates, s);
@@ -243,17 +249,65 @@ public class Player {
 		return index - 1;
 	}
 	
-	private void sellProperty() {
+	@Override public boolean equals(Object o) {
+		if(this == o) { return true; }
+		if(!(o instanceof Player)) { return false; }
+		Player player = (Player)o;
+		return id == player.id;
+	}
+	
+	@Override public int hashCode() {
+		return Objects.hash(id);
+	}
+	
+	private void sellProperty(boolean bankTransaction) {
 		var sellableProperties = Game.ownerMap.keySet().stream().filter(x -> Game.ownerMap.get(x) == this && (x instanceof Utility || x instanceof RailRoad || x instanceof Estate estate && estate.numHouses == 0)).toArray();
 		var itr = Arrays.stream(sellableProperties).iterator();
-		int choice = Game.inputOption("Which property would you like to sell?",itr, sellableProperties.length);
-		Property property = (Property)sellableProperties[choice];
-		if(Game.inputBool("Are you sure you want to sell " + property + " for $" + property.mortgagePrice + "?")) {
-			money += property.mortgagePrice;
-			Game.ownerMap.put(property, Game.BANKER);
-			Game.inputBool(printBalance());
+		if(bankTransaction || Game.inputBool("Do you want to sell to the bank or another player?", "Banker", "Another Player")) {
+			int choice = Game.inputOption("Which property would you like to sell?",itr, sellableProperties.length);
+			Property property = (Property)sellableProperties[choice];
+			if(Game.inputBool("Are you sure you want to sell " + property + " to the bank for $" + property.mortgagePrice + "?")) {
+				money += property.mortgagePrice;
+				Game.ownerMap.put(property, Game.BANKER);
+				Game.inputBool(printBalance());
+				return;
+			}
+		}
+		int playerOption = -1;
+		int sum = -1;
+		Player otherPlayer = null;
+		List<Player> otherPlayers = Game.PLAYERS.stream().filter(x -> x.id != id).collect(Collectors.toList());
+		
+		String[] array = new String[otherPlayers.size()];
+		Iterator<Player> it = otherPlayers.iterator();
+		for(int i1 = 0; i1 < otherPlayers.size(); i1++) {
+			array[i1] = it.next().toString();
+		}
+		Property sellableProperty = getSellableProperties(sellableProperties);
+		do {
+			playerOption = Game.inputOption("Which player do you want to sell to?", array);
+		} while( playerOption < 0 || playerOption > Game.PLAYERS.size() - 1);
+		otherPlayer = otherPlayers.get(playerOption);
+		boolean startOver = false;
+		do {
+			sum = Game.inputInt("How much do you want to sell " + sellableProperty + " for?");
+			if(sum > otherPlayer.money) {
+				sum = -1;
+				if(!Game.inputBool(otherPlayer + " can't afford " + sellableProperty + " for that much. Try again?")) {
+					startOver = true;
+					break;
+				}
+			}
+		} while(sum < 0);
+		if(startOver) return;
+		if(otherPlayer.money >= sum && Game.inputBool("Are you sure you want to sell " + sellableProperty + " to " + otherPlayer + " for " + sum + "?")){
+			if(Game.inputBool(otherPlayer + ", are you willing to buy " + sellableProperty + " for $" + sum + "?")) {
+				Game.ownerMap.put(sellableProperty, otherPlayer);
+				otherPlayer.payPlayer(this, sum);
+			}
 		}
 	}
+	
 	
 	public ArrayList<Estate> canModify(boolean developing) {
 		ArrayList<Estate> options = new ArrayList<>();

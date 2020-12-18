@@ -34,7 +34,8 @@ public class Game {
 		chance = new Deck(CHANCE_STRING);
 		chest = new Deck(CHEST_STRING);
 		board = boardInit(chance, chest);
-		/*
+		
+		
 		// use these for testing what happens at particular types of BoardSpaces
 		// Estate
 		ownerMap.put((Property)board.get(24), PLAYERS.get(1));
@@ -44,7 +45,13 @@ public class Game {
 		
 		// RailRoad
 		ownerMap.put((Property)board.get(15), PLAYERS.get(1));
-		*/
+		
+		// Whole group
+		ownerMap.put((Property)board.get(6), PLAYERS.get(0));
+		ownerMap.put((Property)board.get(8), PLAYERS.get(0));
+		ownerMap.put((Property)board.get(9), PLAYERS.get(0));
+		
+		
 		turnCounter = 0;
 		for(; PLAYERS.size() > 1; turnCounter++) {
 			Player player = PLAYERS.get(turnCounter % PLAYERS.size());
