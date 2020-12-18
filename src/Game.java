@@ -353,8 +353,9 @@ public class Game {
 	}
 	
 	private static void luxuryTax(Player player) {
-		input("you landed on luxury tax. Pay $75");
-		player.money -= 75;
+		System.out.println("you landed on luxury tax. Pay $75");
+		player.payPlayer(BANKER, 75);
+	
 	}
 	
 	public static void main(String[] args) throws FileNotFoundException {

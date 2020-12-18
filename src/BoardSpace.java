@@ -1,5 +1,3 @@
-package monopoly;
-
 public class BoardSpace {
 	public String name;
 	SpaceKind kind;

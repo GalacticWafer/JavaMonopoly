@@ -89,17 +89,17 @@ public class Card {
 						}
 					}
 				}
-				Game.debtCheck(currentPlayer, payment, currentPlayer
-				 .canPayDebt(payment));
+				if(!(currentPlayer.canPayDebt(payment) >= payment)) {
+					Game.removePlayer(currentPlayer);
+				} else {
+					currentPlayer.money -= payment;
+				}
 			}
-			case PAY -> {
-				int collectedDebt = currentPlayer.canPayDebt(args[0]);
-				Game.debtCheck(currentPlayer, args[0], collectedDebt);
-			}
+			case PAY -> currentPlayer.payPlayer(Game.BANKER, args[0]);
 			case PAY_EACH -> {
 				for(Player p: players) {
 					if(currentPlayer != p) {
-						if(currentPlayer.payPlayer( p, args[0])) { 
+						if(currentPlayer.payPlayer(p, args[0])){
 							break;
 						}
 					}
@@ -109,9 +109,7 @@ public class Card {
 			case COLLECT_EACH -> {
 				for(Player p: players) {
 					if(currentPlayer != p) {
-						if(p.payPlayer(currentPlayer, args[0])) {
-							break;
-						}
+						p.payPlayer(currentPlayer,args[0]);
 					}
 				}
 			}
@@ -136,6 +134,6 @@ public class Card {
 	private void move(Player currentPlayer, ArrayList<BoardSpace> board, int oldLocation) {
 		int move;
 		move = oldLocation > args[0] ? (board.size() - oldLocation + args[0]) : (args[0] - oldLocation);
-		Game.movePlayer(currentPlayer, board.get((currentPlayer.location)) , oldLocation, move);
+		Game.movePlayer(currentPlayer, board.get(currentPlayer.location), oldLocation, move);
 	}
 }

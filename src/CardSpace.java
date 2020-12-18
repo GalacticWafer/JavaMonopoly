@@ -1,5 +1,3 @@
-package monopoly;
-
 public class CardSpace extends BoardSpace {
 	private  Deck deck;
 	

@@ -73,6 +73,7 @@ public class Player {
 	public boolean payPlayer(Player other, int amount) {
 		int collectedDebt = canPayDebt(amount);
 		if(!(collectedDebt >= amount)) {
+			System.out.println(this + ", you cannot pay what they owe. You lose!");
 			Game.removePlayer(this);
 			return true;
 		} else {

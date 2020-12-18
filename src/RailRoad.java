@@ -1,5 +1,3 @@
-package monopoly;
-
 import java.util.List;
 
 public class RailRoad extends Property {
