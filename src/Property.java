@@ -1,8 +1,8 @@
-import java.util.List;
+List;
 
 public class Property extends BoardSpace {
 	int purchasePrice;
-	int mortgagePrice;
+	int mortgage	Price;
 	boolean isMortgaged;
 	List<Integer> payouts;
 	
@@ -10,8 +10,8 @@ public class Property extends BoardSpace {
 	 int location,
 	 String name,
 	 SpaceKind kind,
-	int purchasePrice,
-	int mortgagePrice,
+	 int purchasePrice,
+	 int mortgagePrice,
 	 List<Integer> payouts
 	)
 	{
